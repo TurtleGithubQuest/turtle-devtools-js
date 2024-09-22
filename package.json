@@ -1,0 +1,18 @@
+{
+  "name": "turtle-devtools",
+  "version": "0.0.1",
+  "module": "build.js",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "dependencies": {
+    "ssh2": "latest",
+    "basic-ftp": "^5.0.5"
+  },
+  "scripts": {
+    "build": "bun run src/tasks/build.js",
+    "deploy": "bun run src/tasks/deploy.js",
+    "watch": "bun run src/tasks/watch.js"
+  }
+}
