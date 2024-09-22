@@ -22,7 +22,7 @@ async function runTask(taskName) {
             await deploy();
             break;
         case 'watch':
-            require("./tasks/watch.js");
+            await import("./tasks/watch.js");
             break;
         default:
             console.log(`Unknown task: ${taskName}`);

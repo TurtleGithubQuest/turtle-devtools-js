@@ -1,13 +1,13 @@
 import { colorLog } from "./utils.js";
-import fs from "node:fs";
+import { existsSync } from "node:fs";
 
 export const SERVER_HOST = process.env.SERVER_HOST;
 export const SERVER_USER = process.env.SERVER_USER;
 export const SERVER_PASSWORD = process.env.SERVER_PASSWORD;
 export const SERVER_KEY = process.env.SERVER_KEY;
 export const SERVER_PATH = process.env.SERVER_PATH || "/";
-export const LOCAL_PATH = "./website";
-export const JS_PATH = "./src";
+export const LOCAL_PATH = process.env.LOCAL_PATH || "./website";
+export const JS_PATH = process.env.JS_PATH || "./src";
 
 let missingVariables = [];
 
@@ -28,7 +28,7 @@ if (!SERVER_PASSWORD && !SERVER_KEY) {
     missingVariables.push("SERVER_PASSWORD or SERVER_KEY");
 }
 
-if (SERVER_KEY && !fs.existsSync(SERVER_KEY)) {
+if (SERVER_KEY && !existsSync(SERVER_KEY)) {
     colorLog('RED', 'Key path specified, but the key was not found!');
     missingVariables.push("SERVER_KEY");
 }

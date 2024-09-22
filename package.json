@@ -7,10 +7,11 @@
     "@types/bun": "latest"
   },
   "dependencies": {
-    "ssh2": "latest",
-    "basic-ftp": "^5.0.5"
+    "basic-ftp": "^5.0.5",
+    "ssh2": "^1.16.0"
   },
   "scripts": {
+    "pack": "rm -R /home/user/.bun/install/cache && npm pack",
     "build": "bun run src/tasks/build.js",
     "deploy": "bun run src/tasks/deploy.js",
     "watch": "bun run src/tasks/watch.js"

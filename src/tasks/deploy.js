@@ -1,12 +1,12 @@
 import { build } from "./build.js";
 import { colorLog } from "../utils/utils.js";
 import * as vars from "../utils/variables.js";
-import { connectSSH, execCommand, uploadDirectorySFTP, closeSSHConnection } from "../utils/ssh-utils.js";
+import { readFileSync, lstatSync } from 'node:fs';
 import path from "node:path";
 
 import { Client as FtpClient } from "basic-ftp";
-
-// State variable to prevent multiple SSH connection closures
+import "../utils/ssh-utils";
+import {connectSSH, execCommand, isConnectionClosed, uploadDirectorySFTP} from "../utils/ssh-utils.js";
 
 export async function deploy() {
     let sshClient;
@@ -17,7 +17,6 @@ export async function deploy() {
             // FTP Deployment
             colorLog("YELLOW", "Connecting via FTP...");
             const ftpClient = new FtpClient();
-            ftpClient.ftp.verbose = true;
             await ftpClient.access({
                 host: vars.SERVER_HOST,
                 user: vars.SERVER_USER,
@@ -26,31 +25,14 @@ export async function deploy() {
             });
 
             colorLog("GREEN", "FTP connection established.");
-
-            // Upload directory using FTP
             colorLog("YELLOW", "Uploading files via FTP...");
             await ftpClient.uploadFromDir(vars.LOCAL_PATH, vars.SERVER_PATH);
             colorLog("GREEN", "FTP upload completed successfully.");
             ftpClient.close();
             colorLog("YELLOW", "FTP connection closed.");
         } else if (vars.SERVER_KEY) {
-            // SSH Deployment
             colorLog("YELLOW", "Establishing SSH connection...");
-
-            const config = {
-                host: vars.SERVER_HOST,
-                port: parseInt(process.env.SFTP_PORT) || 22,
-                username: vars.SERVER_USER,
-                privateKey: fs.readFileSync(vars.SERVER_KEY, 'utf8'),
-                readyTimeout: 20000, // 20 seconds timeout
-            };
-
-            try {
-                sshClient = await connectSSH(config);
-            } catch (err) {
-                colorLog("RED", `Failed to establish SSH connection: ${err.message}`);
-                process.exit(1);
-            }
+            sshClient = await connectSSH();
 
             try {
                 // Check if remote directory exists
@@ -66,7 +48,7 @@ export async function deploy() {
                 const absoluteLocalPath = path.resolve(vars.LOCAL_PATH);
 
                 try {
-                    const stats = fs.lstatSync(absoluteLocalPath);
+                    const stats = lstatSync(absoluteLocalPath);
                     if (!stats.isDirectory()) {
                         colorLog('RED', `Path is not a directory: '${absoluteLocalPath}'`);
                         sshClient.end();
@@ -82,7 +64,9 @@ export async function deploy() {
             } catch (err) {
                 colorLog('RED', `Deployment Error: ${err.message}`);
             } finally {
-                closeSSHConnection(sshClient);
+                if (sshClient && !isConnectionClosed) {
+                    sshClient.end();
+                }
             }
         } else {
             colorLog("RED", "Error: No password or key provided.");
