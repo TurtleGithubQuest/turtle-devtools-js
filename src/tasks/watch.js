@@ -1,5 +1,6 @@
 import { watch } from "fs";
-import { Client } from "basic-ftp";
+import { uploadFileSSH } from "../utils/ssh-utils.js";
+import * as vars from "../utils/variables.js";
 import path from "path";
 import {colorLog} from "../utils/utils.js";
 import {buildJavaScript} from "./build.js";
@@ -56,14 +57,14 @@ const debouncedUploadFile = debounce(async (filename) => {
 
 // Watch for changes in the directory
 colorLog("BRIGHT_MAGENTA", `Watching for changes in folder '${vars.LOCAL_PATH.replace("./", "")}'...`);
-watch(vars.LOCAL_PATH, { recursive: true }, (eventType, filename) => {
+watch(vars.LOCAL_PATH, { recursive: true }, async (eventType, filename) => {
     // Only trigger upload on file changes (not on rename or delete)
     if (eventType !== 'change' && filename) {
         colorLog("BRIGHT_WHITE", `${eventType}d ${filename}.`);
     }
     // Ignore temporary files
     if (!filename.endsWith('~')) {
-        debouncedUploadFile(filename);
+        await debouncedUploadFileSSH(filename);
     }
 });
 colorLog("BRIGHT_MAGENTA", `Watching for changes in folder '${vars.JS_PATH.replace("./", "")}'...`);

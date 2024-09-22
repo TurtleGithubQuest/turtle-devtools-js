@@ -231,9 +231,7 @@ export async function deploy() {
             } catch (err) {
                 colorLog('RED', `Deployment Error: ${err.message}`);
             } finally {
-                if (sshClient && !isConnectionClosed) {
-                    sshClient.end();
-                }
+                closeSSHConnection(sshClient);
             }
         } else {
             colorLog("RED", "Error: No password or key provided.");
