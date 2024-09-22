@@ -1,6 +1,6 @@
 import { Client as SshClient } from "ssh2";
 import { colorLog } from "./utils.js";
-import fs, {readFileSync} from "node:fs";
+import fs, { readFileSync } from "node:fs";
 import path from "node:path";
 import * as vars from "./variables.js";
 
@@ -95,8 +95,8 @@ export function uploadDirectorySFTP(client, localPath, remotePath) {
                 const stats = fs.lstatSync(currentLocalPath);
                 if (stats.isDirectory()) {
                     try {
-                        const files = fs.readdirSync(currentLocalPath);
                         await mkdirSFTP(sftp, currentRemotePath);
+                        const files = fs.readdirSync(currentLocalPath);
                         for (const file of files) {
                             await walk(path.join(currentLocalPath, file), path.posix.join(currentRemotePath, file));
                         }
@@ -107,7 +107,7 @@ export function uploadDirectorySFTP(client, localPath, remotePath) {
                     colorLog('CYAN', `🌎 Uploading ${currentLocalPath}`);
                     await uploadFileSFTP(sftp, currentLocalPath, currentRemotePath);
                 } else {
-                    throw Error(`Path is not valid: ${currentLocalPath}`)
+                    throw Error(`Path is not valid: ${currentLocalPath}`);
                 }
             };
 
@@ -115,9 +115,16 @@ export function uploadDirectorySFTP(client, localPath, remotePath) {
                 return new Promise((resolve, reject) => {
                     sftp.mkdir(remotePath, { mode: 0o755 }, (err) => {
                         if (err) {
-                            if (parseInt(err.code) === 4) {
-                                colorLog("YELLOW", `Directory already exists: '${remotePath}'`);
+                            if (err.code === 4 || err.message.includes('Failure')) {
+                                colorLog("YELLOW", `Directory already exists or cannot be created: '${remotePath}'`);
                                 resolve();
+                            } else if (err.code === 2 || err.message.includes('No such file')) {
+                                // Attempt to create parent directory first
+                                const parentDir = path.posix.dirname(remotePath);
+                                mkdirSFTP(sftp, parentDir)
+                                    .then(() => mkdirSFTP(sftp, remotePath))
+                                    .then(resolve)
+                                    .catch(reject);
                             } else {
                                 colorLog("RED", `Failed to create directory '${remotePath}': ${err.message}`);
                                 reject(err);
@@ -132,14 +139,59 @@ export function uploadDirectorySFTP(client, localPath, remotePath) {
 
             const uploadFileSFTP = (sftp, local, remote) => {
                 return new Promise((resolve, reject) => {
-                    sftp.fastPut(local, remote, {}, (err) => {
-                        if (err) {
-                            colorLog("RED", `Failed to upload ${local} to ${remote}: ${err.message}`);
+                    const remoteDir = path.posix.dirname(remote);
+                    ensureDirectoryExists(sftp, remoteDir)
+                        .then(() => {
+                            sftp.fastPut(local, remote, {}, (err) => {
+                                if (err) {
+                                    colorLog("RED", `Failed to upload ${local} to ${remote}: ${err.message}`);
+                                    reject(err);
+                                } else {
+                                    resolve();
+                                }
+                            });
+                        })
+                        .catch((err) => {
+                            colorLog("RED", `Error ensuring remote directory exists: ${err.message}`);
                             reject(err);
-                        } else {
-                            resolve();
-                        }
-                    });
+                        });
+                });
+            };
+
+            const ensureDirectoryExists = (sftp, remoteDir) => {
+                return new Promise((resolve, reject) => {
+                    const mkdirRecursive = (dir) => {
+                        return new Promise((res, rej) => {
+                            sftp.mkdir(dir, { mode: 0o755 }, (err) => {
+                                if (err) {
+                                    const errorCode = parseInt(err.code);
+                                    if (errorCode === 4 || err.message.includes('Failure')) {
+                                        res();
+                                    } else if (errorCode === 2 || err.message.includes('No such file')) {
+                                        // Recursively create parent directories
+                                        const parentDir = path.posix.dirname(dir);
+                                        if (parentDir === dir) { // Reached root
+                                            res();
+                                        } else {
+                                            mkdirRecursive(parentDir)
+                                                .then(() => mkdirRecursive(dir))
+                                                .then(res)
+                                                .catch(rej);
+                                        }
+                                    } else {
+                                        colorLog("RED", `Failed to create directory '${dir}': ${err.message}`);
+                                        rej(err);
+                                    }
+                                } else {
+                                    colorLog("GREEN", `Directory created: '${dir}'`);
+                                    res();
+                                }
+                            });
+                        });
+                    };
+                    mkdirRecursive(remoteDir)
+                        .then(resolve)
+                        .catch(reject);
                 });
             };
 
