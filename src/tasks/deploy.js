@@ -21,7 +21,7 @@ export async function deploy() {
                 host: vars.SERVER_HOST,
                 user: vars.SERVER_USER,
                 password: vars.SERVER_PASSWORD,
-                secure: true, // Enable FTPS
+                secure: true,
             });
 
             colorLog("GREEN", "FTP connection established.");

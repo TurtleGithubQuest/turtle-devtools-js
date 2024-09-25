@@ -1,50 +1,93 @@
-import {existsSync, watch} from "fs";
-import {connectSSH, uploadDirectorySFTP} from "../utils/ssh-utils.js";
-import path, {resolve} from "path";
-import { colorLog } from "../utils/utils.js";
-import { buildJavaScript } from "./build.js";
-import * as vars from "../utils/variables.js";
+import { existsSync, watch } from 'fs';
+import path, { resolve } from 'path';
+import { Client as FTPClient } from "basic-ftp"
+import { connectSSH, uploadDirectorySFTP } from '../utils/ssh-utils.js';
+import { colorLog } from '../utils/utils.js';
+import { buildJavaScript } from './build.js';
+import * as env from '../utils/variables.js';
 
 function debounce(func, wait) {
-    let timeout;
-    return (...args) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func(...args), wait);
-    };
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
 }
-const sshClient = await connectSSH();
 
-const debouncedUploadFileSSH = debounce(async (filename) => {
-    const localFilePath = path.join(vars.LOCAL_PATH, filename);
-    const remoteFilePath = path.join(vars.SERVER_PATH, filename);
+const uploadFileFTP = debounce(async (filename) => {
+  const localPath = path.join(env.LOCAL_PATH, filename);
+  const remotePath = path.join(env.SERVER_PATH, filename);
+  const client = new FTPClient();
 
-    try {
-        await uploadDirectorySFTP(sshClient, localFilePath, remoteFilePath);
-    } catch (error) {
-        colorLog("RED", `Error uploading file ${filename}: ${error.message}`);
-    }
+  try {
+    await client.access({
+      host: env.SERVER_HOST,
+      user: env.SERVER_USER,
+      password: env.SERVER_PASSWORD,
+      secure: true,
+    });
+    await client.uploadFrom(localPath, remotePath);
+    colorLog('CYAN', `🌎 Uploaded ${localPath}`);
+  } catch (error) {
+    colorLog('RED', `Error uploading file ${localPath} via FTP: ${error.message}`);
+  } finally {
+    await client.close();
+  }
+}, 500);
+
+const uploadFileSSH = debounce(async (filename) => {
+  const localFilePath = path.join(env.LOCAL_PATH, filename);
+  const remoteFilePath = path.join(env.SERVER_PATH, filename);
+
+  try {
+    const sshClient = await connectSSH();
+    await uploadDirectorySFTP(sshClient, localFilePath, remoteFilePath);
+    sshClient.dispose();
+    colorLog('CYAN', `🌎 Uploaded ${localFilePath}`);
+  } catch (error) {
+    colorLog('RED', `Error uploading file ${filename} via SSH: ${error.message}`);
+  }
 }, 500);
 
 const debouncedBuildJavaScript = debounce(() => buildJavaScript(true), 500);
 
-if (existsSync(vars.LOCAL_PATH)) {
-    colorLog("BRIGHT_MAGENTA", `Watching for changes in folder '${vars.LOCAL_PATH.replace("./", "")}'...`);
-    watch(vars.LOCAL_PATH, {recursive: true}, async (eventType, filename) => {
-        if (filename && !filename.endsWith('~')) {
-            await debouncedUploadFileSSH(filename);
-        }
-    });
-} else {
-    colorLog("RED", `Folder '${resolve(vars.LOCAL_PATH)}' not found.`);
-}
+(async () => {
+  if (existsSync(env.LOCAL_PATH)) {
+    colorLog(
+      'BRIGHT_MAGENTA',
+      `Watching for changes in folder '${env.LOCAL_PATH.replace('./', '')}'...`
+    );
 
-if (existsSync(vars.JS_PATH)) {
-    colorLog("BRIGHT_MAGENTA", `Watching for changes in folder '${vars.JS_PATH.replace("./", "")}'...`);
-    watch(vars.JS_PATH, {recursive: true}, async (eventType, filename) => {
-        if (eventType === 'change') {
-            debouncedBuildJavaScript();
+    if (env.SERVER_PASSWORD) {
+      // Watch and upload via FTP
+      watch(env.LOCAL_PATH, { recursive: true }, async (eventType, filename) => {
+        if (filename && !filename.endsWith('~')) {
+          await uploadFileFTP(filename);
         }
+      });
+    } else {
+      // Watch and upload via SSH
+      watch(env.LOCAL_PATH, { recursive: true }, async (eventType, filename) => {
+        if (filename && !filename.endsWith('~')) {
+          await uploadFileSSH(filename);
+        }
+      });
+    }
+  } else {
+    colorLog('RED', `Folder '${resolve(env.LOCAL_PATH)}' not found.`);
+  }
+
+  if (existsSync(env.JS_PATH)) {
+    colorLog(
+      'BRIGHT_MAGENTA',
+      `Watching for changes in folder '${env.JS_PATH.replace('./', '')}'...`
+    );
+    watch(env.JS_PATH, { recursive: true }, (eventType) => {
+      if (eventType === 'change') {
+        debouncedBuildJavaScript();
+      }
     });
-} else {
-    colorLog("RED", `Folder '${resolve(vars.JS_PATH)}' not found.`);
-}
+  } else {
+    colorLog('RED', `Folder '${resolve(env.JS_PATH)}' not found.`);
+  }
+})();
