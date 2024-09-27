@@ -44,7 +44,7 @@ jobs:
 
       - name: Package Build Output
         run: |
-          tar -czf "turtle-devtools-${{ env.VERSION }}.tar.gz" build
+          tar -czf "turtle-devtools-${{ env.VERSION }}.tar.gz" -C build .
 
       - name: Create release
         uses: ncipollo/release-action@v1
