@@ -1,6 +1,6 @@
 import { resolve } from 'path';
 import { existsSync } from 'fs';
-import {colorLog, runCommand} from '../utils/utils.js';
+import { colorLog, runCommand } from '../utils/utils.js';
 
 export async function buildComposer() {
     colorLog("YELLOW", 'Building Composer...');
@@ -32,7 +32,7 @@ export async function buildJavaScript(isQuiet=false) {
     }
 
     await runCommand('bun', ['install'], null, isQuiet);
-    await runCommand('bun', ['run', 'build.js'], null, isQuiet);
+    await runCommand('bun', ['run', 'build.ts'], null, isQuiet);
     if (!isQuiet)
         colorLog("YELLOW", 'JavaScript build completed.');
 }

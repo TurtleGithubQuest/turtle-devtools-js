@@ -1,6 +1,8 @@
+#!/usr/bin/env bun
+
 import { build } from "./tasks/build.js";
 import { deploy } from "./tasks/deploy.js";
-import {parseArgs} from "util";
+import { parseArgs } from "util";
 
 const { values, positionals } = parseArgs({
   args: Bun.argv,

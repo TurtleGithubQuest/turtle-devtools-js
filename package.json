@@ -1,8 +1,11 @@
 {
   "name": "turtle-devtools",
   "version": "0.0.1",
-  "module": "build.js",
+  "module": "build.ts",
   "type": "module",
+  "bin": {
+    "turtle-devtools": "./src/tasks/tasks.js"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
@@ -12,6 +15,7 @@
   },
   "scripts": {
     "pack": "rm -R /home/user/.bun/install/cache && npm pack",
+    "test": "bun run src/tests/test.js",
     "build": "bun run src/tasks/build.js",
     "deploy": "bun run src/tasks/deploy.js",
     "watch": "bun run src/tasks/watch.js"
