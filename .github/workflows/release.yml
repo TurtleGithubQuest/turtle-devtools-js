@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
@@ -43,13 +43,13 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Create release
-        run: |
-          FILES=$(ls build/**/* | tr '\n' ' ')
-          PRERELEASE_FLAG=""
-          if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
-            PRERELEASE_FLAG="--prerelease --latest=false"
-            gh release delete "v${{ env.VERSION }}" --yes || true
-          fi
-          gh release create $PRERELEASE_FLAG "v${{ env.VERSION }}" $FILES --clobber"
+        uses: actions/publish-action@v0.3.0
+        with:
+          tag_name: "v${{ env.VERSION }}"
+          release_name: "Release v${{ env.VERSION }}"
+          body: "Release of version v${{ env.VERSION }}"
+          draft: false
+          prerelease: ${{ contains(github.ref, 'dev') }}
+          files: "turtle-devtools-${{ env.VERSION }}.tar.gz"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
