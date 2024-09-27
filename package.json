@@ -14,7 +14,7 @@
     "ssh2": "^1.16.0"
   },
   "scripts": {
-    "pack": "rm -R /home/user/.bun/install/cache && npm pack",
+    "pack": "rm -rf /home/user/.bun/install/cache && npm pack",
     "test": "bun run src/tests/test.js",
     "build": "bun run src/tasks/build.js",
     "deploy": "bun run src/tasks/deploy.js",
