@@ -16,7 +16,8 @@ function debounce(func, wait) {
 
 const uploadFileFTP = debounce(async (filename) => {
   const localPath = path.join(env.LOCAL_PATH, filename);
-  const remotePath = path.join(env.SERVER_PATH, filename).replace(/\\/g, '/');
+  const remotePath = path.posix.join(env.SERVER_PATH, filename);
+
   const client = new FTPClient();
 
   try {
@@ -30,11 +31,18 @@ const uploadFileFTP = debounce(async (filename) => {
     const stats = statSync(localPath);
 
     if (stats.isFile()) {
-      await client.uploadFrom(localPath, remotePath);
+      const remoteDir = path.posix.dirname(remotePath);
+      const remoteFileName = path.posix.basename(remotePath);
+
+      await client.ensureDir(remoteDir);
+
+      await client.cd(remoteDir);
+
+      await client.uploadFrom(localPath, remoteFileName);
       colorLog('CYAN', `🌎 Uploaded ${localPath}`);
     } else if (stats.isDirectory()) {
       await uploadDirectory(client, localPath, remotePath);
-      colorLog('CYAN', `📁 Uploaded ${localPath}`);
+      colorLog('CYAN', `📁 Uploaded directory ${localPath}`);
     } else {
       colorLog('YELLOW', `⚠️ Skipped: ${localPath} (Not a file or directory)`);
     }
