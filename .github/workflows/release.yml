@@ -42,11 +42,6 @@ jobs:
           VERSION=$(jq -r '.version' package.json)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Create Git tag
-        run: |
-          git tag "v${{ env.VERSION }}"
-          git push origin "v${{ env.VERSION }}"
-
       - name: Create release
         run: |
           FILES=$(ls build/**/* | tr '\n' ' ')
