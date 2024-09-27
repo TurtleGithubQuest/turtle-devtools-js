@@ -57,7 +57,9 @@ jobs:
           body: "Release of version v${{ env.VERSION }}"
           draft: false
           prerelease: ${{ contains(github.ref, 'dev') }}
-          artifacts: "turtle-devtools-${{ env.VERSION }}.tar;turtle-devtools-${{ env.VERSION }}.tgz"
+          artifacts: |
+            turtle-devtools-${{ env.VERSION }}.tar
+            turtle-devtools-${{ env.VERSION }}.tgz
           allowUpdates: true
           removeArtifacts: true
         env:
