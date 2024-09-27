@@ -47,13 +47,13 @@ jobs:
           tar -czf "turtle-devtools-${{ env.VERSION }}.tar.gz" build
 
       - name: Create release
-        uses: actions/publish-action@v0.3.0
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: "v${{ env.VERSION }}"
-          release_name: "Release v${{ env.VERSION }}"
+          tag: "v${{ env.VERSION }}"
+          name: "Release v${{ env.VERSION }}"
           body: "Release of version v${{ env.VERSION }}"
           draft: false
           prerelease: ${{ contains(github.ref, 'dev') }}
-          files: "turtle-devtools-${{ env.VERSION }}.tar.gz"
+          artifacts: "turtle-devtools-${{ env.VERSION }}.tar.gz"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
