@@ -42,6 +42,10 @@ jobs:
           VERSION=$(jq -r '.version' package.json)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
+      - name: Package Build Output
+        run: |
+          tar -czf "turtle-devtools-${{ env.VERSION }}.tar.gz" build
+
       - name: Create release
         uses: actions/publish-action@v0.3.0
         with:
