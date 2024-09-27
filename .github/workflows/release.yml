@@ -44,14 +44,10 @@ jobs:
 
       - name: Create Git tag
         run: |
-          git config --global user.name "${{ github.actor }}"
-          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
           git tag "v${{ env.VERSION }}"
           git push origin "v${{ env.VERSION }}"
 
       - name: Create release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           FILES=$(ls build/**/* | tr '\n' ' ')
           PRERELEASE_FLAG=""
@@ -59,4 +55,6 @@ jobs:
             PRERELEASE_FLAG="--prerelease --latest=false"
             gh release delete "v${{ env.VERSION }}" --yes || true
           fi
-          gh release create $PRERELEASE_FLAG "v${{ env.VERSION }}" $FILES --title "Release v${{ env.VERSION }}" --notes "Release of version v${{ env.VERSION }}"
+          gh release create $PRERELEASE_FLAG "v${{ env.VERSION }}" $FILES --clobber"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
