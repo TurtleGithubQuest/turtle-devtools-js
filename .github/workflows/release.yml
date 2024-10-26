@@ -53,6 +53,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: "v${{ env.VERSION }}"
+          makeLatest: true
           name: "Release v${{ env.VERSION }}"
           body: "Release of version v${{ env.VERSION }}"
           draft: false

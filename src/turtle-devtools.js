@@ -32,4 +32,4 @@ async function runTask(taskName) {
     }
 }
 
-runTask(values['task']);
+runTask(values['task']).then(() => this.wait(true));
